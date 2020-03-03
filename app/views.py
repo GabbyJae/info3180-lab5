@@ -10,7 +10,7 @@ from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from app.forms import LoginForm
 from app.models import UserProfile
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash
 
 
 ###
@@ -44,20 +44,28 @@ def login():
             # You will need to import the appropriate function to do so.
             # Then store the result of that query to a `user` variable so it can be
             # passed to the login_user() method below.
-            user = UserProfile.query.filter_by(username=username, password=password).first()
+            user = UserProfile.query.filter_by(username=username).first()
 
             if user is not None and check_password_hash(user.password, password):
 
             # get user id, load into session
-            login_user(user)
+                login_user (user)
+                next_page = request.args.get('next')
 
             # remember to flash a message to the user
-            flash('Logged in successfully.', 'success')
-            return redirect(url_for("secure-page")) # they should be redirected to a secure-page route instead
-        else:
-            flash('Username or Password is incorrect.', 'danger')
+                print (next_page)
+
+                flash('Logged in successfully.', 'success')
+                return redirect(next_page or url_for("secure_page")) # they should be redirected to a secure-page route instead
+           
+            else: 
+                flash('Username or Password is incorrect.', 'danger')
     return render_template("login.html", form=form)
 
+@app.route("/secure-page")
+@login_required
+def secure_page():
+    return render_template('secure_page.html')
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
@@ -75,6 +83,15 @@ def send_text_file(file_name):
     """Send your static text file."""
     file_dot_text = file_name + '.txt'
     return app.send_static_file(file_dot_text)
+
+@app.route("/logout")
+@login_required
+def logout():
+    # Logout the user and end the session
+    logout_user()
+    flash('You have been logged out.', 'danger')
+    return redirect(url_for('home'))
+
 
 
 @app.after_request
